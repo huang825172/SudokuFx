@@ -44,14 +44,15 @@ class Sudoku {
     private static class Puzzle {
         private final Storage current;
         private final File saveFile;
+        private boolean modified;
 
-        Puzzle(int blackCount, File file) throws Exception{
+        Puzzle(int blackCount, File file) throws Exception {
             this.current = newPuzzle(blackCount);
             this.saveFile = file;
             savePuzzle();
         }
 
-        Puzzle(File  file) throws Exception {
+        Puzzle(File file) throws Exception {
             FileInputStream fileIn = new FileInputStream(file);
             ObjectInputStream objIn = new ObjectInputStream(fileIn);
             this.current = (Storage) objIn.readObject();
@@ -66,20 +67,21 @@ class Sudoku {
             objOut.writeObject(this.current);
             objOut.close();
             fileOut.close();
+            modified = false;
         }
 
         private Storage newPuzzle(int blankCount) {
             Storage puzzle = new Storage();
             puzzle.puzzle = new int[][]{
-                    {0,1,0,0,0,2,0,8,4},
-                    {0,0,8,3,0,0,0,0,1},
-                    {0,0,3,0,1,6,5,0,0},
-                    {8,0,0,9,5,0,0,0,0},
-                    {0,7,0,0,0,0,4,9,0},
-                    {3,6,0,0,7,0,0,5,0},
-                    {0,0,5,4,0,1,0,7,0},
-                    {1,0,0,2,0,0,8,0,5},
-                    {0,8,0,0,0,0,1,0,9}
+                    {0, 1, 0, 0, 0, 2, 0, 8, 4},
+                    {0, 0, 8, 3, 0, 0, 0, 0, 1},
+                    {0, 0, 3, 0, 1, 6, 5, 0, 0},
+                    {8, 0, 0, 9, 5, 0, 0, 0, 0},
+                    {0, 7, 0, 0, 0, 0, 4, 9, 0},
+                    {3, 6, 0, 0, 7, 0, 0, 5, 0},
+                    {0, 0, 5, 4, 0, 1, 0, 7, 0},
+                    {1, 0, 0, 2, 0, 0, 8, 0, 5},
+                    {0, 8, 0, 0, 0, 0, 1, 0, 9}
             };
             return puzzle;
         }
@@ -92,11 +94,12 @@ class Sudoku {
         public boolean solvePuzzle() {
             int[][] solve = getSolve(getPuzzle()[0]);
             if (solve != null) {
-                for (int i=0; i<9; i++) {
-                    for (int j=0; j<9; j++) {
-                            modifyPuzzle(i, j, solve[i][j]);
+                for (int i = 0; i < 9; i++) {
+                    for (int j = 0; j < 9; j++) {
+                        modifyPuzzle(i, j, solve[i][j]);
                     }
                 }
+                this.current.isAutoSolved = true;
                 return true;
             } else {
                 return false;
@@ -105,8 +108,8 @@ class Sudoku {
 
         public int[][][] getPuzzle() {
             int[][][] merged = new int[2][9][9];
-            for (int i=0; i<9; i++) {
-                for (int j=0; j<9; j++) {
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
                     merged[0][i][j] = this.current.puzzle[i][j];
                     merged[1][i][j] = this.current.answer[i][j];
                 }
@@ -130,6 +133,8 @@ class Sudoku {
 
         public void clearPuzzle() {
             this.current.answer = new int[9][9];
+            this.current.isAutoSolved = false;
+            modified = true;
             clearTimer();
         }
 
@@ -138,6 +143,7 @@ class Sudoku {
                 if (0 <= value && value <= 9) {
                     if (this.current.puzzle[x][y] == 0) {
                         this.current.answer[x][y] = value;
+                        modified = true;
                     }
                 }
             }
@@ -149,40 +155,52 @@ class Sudoku {
 
         public void tikTok() {
             this.current.timer++;
+            modified = true;
         }
 
         public void clearTimer() {
             this.current.timer = 0;
+            modified = true;
         }
 
+        public boolean isAutoSolved() { return this.current.isAutoSolved; }
+
+        public void setTimerRun(boolean run) {
+            this.current.isTimerRun = run;
+        }
+
+        public boolean isTimerRun() { return this.current.isTimerRun; }
+
+        public boolean isModified() { return modified; }
+
         private boolean blockInvalid(int i, int j, int[][] puzzle) {
-            int x = (j-(j)%3)/3;
-            int y = (i-(i)%3)/3;
+            int x = (j - (j) % 3) / 3;
+            int y = (i - (i) % 3) / 3;
             boolean[] check_box = new boolean[9];
-            for (int coords_x = 0; coords_x < 3; coords_x ++){
-                for (int coords_y = 0; coords_y < 3; coords_y ++){
-                    int cx = x*3+coords_x;
-                    int cy = y*3+coords_y;
+            for (int coords_x = 0; coords_x < 3; coords_x++) {
+                for (int coords_y = 0; coords_y < 3; coords_y++) {
+                    int cx = x * 3 + coords_x;
+                    int cy = y * 3 + coords_y;
                     if (puzzle[cy][cx] > 9 || puzzle[cy][cx] < 0) return true;
                     if (puzzle[cy][cx] == 0) continue;
-                    if (check_box[puzzle[cy][cx]-1]) return true;
-                    check_box[puzzle[cy][cx]-1] = true;
+                    if (check_box[puzzle[cy][cx] - 1]) return true;
+                    check_box[puzzle[cy][cx] - 1] = true;
                 }
             }
             boolean[] check_column = new boolean[9];
             boolean[] check_row = new boolean[9];
-            for (int coords = 0; coords < 9; coords ++){
+            for (int coords = 0; coords < 9; coords++) {
                 if (puzzle[i][coords] != 0) {
                     if (puzzle[i][coords] > 9
                             || puzzle[i][coords] < 0
-                            || check_column[puzzle[i][coords]-1]) return true;
-                    check_column[puzzle[i][coords]-1] = true;
+                            || check_column[puzzle[i][coords] - 1]) return true;
+                    check_column[puzzle[i][coords] - 1] = true;
                 }
                 if (puzzle[coords][j] != 0) {
                     if (puzzle[coords][j] > 9
                             || puzzle[coords][j] < 0
-                            || check_row[puzzle[coords][j]-1]) return true;
-                    check_row[puzzle[coords][j]-1] = true;
+                            || check_row[puzzle[coords][j] - 1]) return true;
+                    check_row[puzzle[coords][j] - 1] = true;
                 }
             }
             return false;
@@ -190,21 +208,21 @@ class Sudoku {
 
         private int[][] getFreeCellList(int[][] puzzle) {
             int freeCellCount = 0;
-            for (int i = 0; i < 9; i ++){
-                for (int j = 0; j < 9; j ++){
-                    if (puzzle[i][j] == 0){
-                        freeCellCount ++;
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    if (puzzle[i][j] == 0) {
+                        freeCellCount++;
                     }
                 }
             }
-            int [][] freeCellList = new int[freeCellCount][2];
+            int[][] freeCellList = new int[freeCellCount][2];
             freeCellCount = 0;
-            for (int i = 0; i < 9; i ++){
-                for (int j = 0; j < 9; j ++){
-                    if (puzzle[i][j] == 0){
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    if (puzzle[i][j] == 0) {
                         freeCellList[freeCellCount][0] = i;
                         freeCellList[freeCellCount][1] = j;
-                        freeCellCount ++;
+                        freeCellCount++;
                     }
                 }
             }
@@ -215,27 +233,27 @@ class Sudoku {
             int[][] freeCellList = getFreeCellList(puzzle);
 
             int k = 0;
-            while (k<freeCellList.length) {
-                if (puzzle[freeCellList[k][0]][freeCellList[k][1]] == 0){
+            while (k < freeCellList.length) {
+                if (puzzle[freeCellList[k][0]][freeCellList[k][1]] == 0) {
                     do {
-                        puzzle[freeCellList[k][0]][freeCellList[k][1]] ++;
+                        puzzle[freeCellList[k][0]][freeCellList[k][1]]++;
                         if (puzzle[freeCellList[k][0]][freeCellList[k][1]] == 10) break;
                     } while (blockInvalid(freeCellList[k][0], freeCellList[k][1], puzzle));
-                    if (blockInvalid(freeCellList[k][0], freeCellList[k][1], puzzle)){
+                    if (blockInvalid(freeCellList[k][0], freeCellList[k][1], puzzle)) {
                         if (k == 0) return null;
                         puzzle[freeCellList[k][0]][freeCellList[k][1]] = 0;
-                        k --;
+                        k--;
                     } else {
-                        k ++;
+                        k++;
                     }
                 } else {
-                    puzzle[freeCellList[k][0]][freeCellList[k][1]] ++;
+                    puzzle[freeCellList[k][0]][freeCellList[k][1]]++;
                     if (puzzle[freeCellList[k][0]][freeCellList[k][1]] == 10) {
                         if (k == 0) return null;
                         puzzle[freeCellList[k][0]][freeCellList[k][1]] = 0;
-                        k --;
+                        k--;
                     } else {
-                        k ++;
+                        k++;
                     }
                 }
             }
@@ -245,8 +263,8 @@ class Sudoku {
         }
 
         private boolean getCheck(int[][] puzzle) {
-            for (int i=0; i<9; i++) {
-                for (int j=0; j<9; j++) {
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
                     if (puzzle[i][j] == 0) return false;
                     if (blockInvalid(i, j, puzzle)) return false;
                 }
@@ -258,6 +276,8 @@ class Sudoku {
             public int[][] puzzle = new int[9][9];
             public int[][] answer = new int[9][9];
             public int timer;
+            public boolean isAutoSolved;
+            public boolean isTimerRun;
         }
     }
 
@@ -266,7 +286,7 @@ class Sudoku {
         private final String storageUrl = "sudoku.status";
         private final String[][] themeList = {
                 {"default", "file:assets/theme/default.css"},
-                {"magic forest", "file:assets/theme/rainforest.css"},
+                {"forest", "file:assets/theme/rainforest.css"},
                 {"dark", "file:assets/theme/dark.css"}
         };
         private final String[][] keymapList = {
@@ -275,13 +295,13 @@ class Sudoku {
         };
         private final KeyCode[][] keymap = {
                 {
-                    KeyCode.DIGIT0,
+                        KeyCode.DIGIT0,
                         KeyCode.DIGIT1, KeyCode.DIGIT2, KeyCode.DIGIT3,
                         KeyCode.DIGIT4, KeyCode.DIGIT5, KeyCode.DIGIT6,
                         KeyCode.DIGIT7, KeyCode.DIGIT8, KeyCode.DIGIT9
                 },
                 {
-                    KeyCode.SPACE,
+                        KeyCode.SPACE,
                         KeyCode.Z, KeyCode.X, KeyCode.C,
                         KeyCode.A, KeyCode.S, KeyCode.D,
                         KeyCode.Q, KeyCode.W, KeyCode.E
@@ -291,13 +311,12 @@ class Sudoku {
                 {"none", ""},
                 {"Lifeline", "assets/music/Lifeline.mp3"}
         };
-        private boolean timerRun;
         private MediaPlayer mp = null;
         private String playing = "";
 
         public Puzzle loadedPuzzle = null;
 
-        Status() throws Exception{
+        Status() throws Exception {
             Storage current;
             File cfgFile = new File(storageUrl);
             if (!cfgFile.exists()) {
@@ -310,7 +329,7 @@ class Sudoku {
                 FileInputStream fileIn = new FileInputStream(storageUrl);
                 ObjectInputStream objIn = new ObjectInputStream(fileIn);
                 try {
-                    current = (Storage)objIn.readObject();
+                    current = (Storage) objIn.readObject();
                 } catch (Exception e) {
                     File wrongFile = new File(storageUrl);
                     if (!wrongFile.delete()) {
@@ -319,7 +338,7 @@ class Sudoku {
                     if (!wrongFile.createNewFile()) {
                         throw new FileNotFoundException();
                     }
-                    current = (Storage)objIn.readObject();
+                    current = (Storage) objIn.readObject();
                 }
                 objIn.close();
                 fileIn.close();
@@ -360,29 +379,21 @@ class Sudoku {
         }
 
         public void setTheme(short theme) {
-            if (0<=theme && theme<=themeList.length-1) {
+            if (0 <= theme && theme <= themeList.length - 1) {
                 this.current.theme = theme;
             }
         }
 
         public void setKeymap(short keymap) {
-            if (0<=keymap && keymap<=keymapList.length-1) {
+            if (0 <= keymap && keymap <= keymapList.length - 1) {
                 this.current.keymap = keymap;
             }
         }
 
         public void setMusic(short music) {
-            if (0<=music && music<=musicList.length-1) {
+            if (0 <= music && music <= musicList.length - 1) {
                 this.current.music = music;
             }
-        }
-
-        public boolean isTimerRun() {
-            return timerRun;
-        }
-
-        public void setTimerRun(boolean run) {
-            this.timerRun = run;
         }
 
         public void updatePlaying() {
@@ -400,7 +411,7 @@ class Sudoku {
             mp.setCycleCount(MediaPlayer.INDEFINITE);
             mp.setStartTime(Duration.ZERO);
             mp.setStopTime(mp.getTotalDuration());
-            Platform.runLater(()->mp.play());
+            Platform.runLater(() -> mp.play());
         }
 
         public static class Storage implements Serializable {
@@ -449,6 +460,7 @@ class Sudoku {
                             }
                             try {
                                 status.loadedPuzzle = new Puzzle(0, file);
+                                status.loadedPuzzle.setTimerRun(true);
                                 tool.fileOpened(true);
                                 tool.settingsShowed(false);
                                 game.showPlayground(true);
@@ -458,13 +470,20 @@ class Sudoku {
                             }
                         }
                     } else {
-                        try {
-                            status.loadedPuzzle = null;
-                            tool.fileOpened(false);
-                            tool.settingsShowed(false);
-                            game.expand(false);
-                        } catch (Exception exception) {
-                            exception.printStackTrace();
+                        ConfirmDialog confirm = new ConfirmDialog(status,
+                                "Puzzle will not be saved automatically.");
+                        if (status.loadedPuzzle.isModified()) {
+                            confirm.showAndWait();
+                        }
+                        if (!status.loadedPuzzle.isModified() || confirm.getResult() == ButtonType.OK) {
+                            try {
+                                status.loadedPuzzle = null;
+                                tool.fileOpened(false);
+                                tool.settingsShowed(false);
+                                game.expand(false);
+                            } catch (Exception exception) {
+                                exception.printStackTrace();
+                            }
                         }
                     }
                 }
@@ -478,7 +497,7 @@ class Sudoku {
                                 new FileChooser.ExtensionFilter(
                                         "Puzzle Storage (*.sudoku)", "*.sudoku"));
                         File file = fileChooser.showOpenDialog(stage);
-                        if (file!=null) {
+                        if (file != null) {
                             try {
                                 status.loadedPuzzle = new Puzzle(file);
                                 tool.fileOpened(true);
@@ -486,7 +505,10 @@ class Sudoku {
                                 game.showPlayground(true);
                                 game.expand(true);
                             } catch (Exception exception) {
-                                exception.printStackTrace();
+                                Alert info = new InfoDialog(status,
+                                        "Open",
+                                        "Open puzzle FAIL.");
+                                info.showAndWait();
                             }
                         }
                     } else {
@@ -496,8 +518,15 @@ class Sudoku {
                             tool.settingsShowed(false);
                             game.showPlayground(true);
                             game.expand(true);
+                            InfoDialog info = new InfoDialog(status,
+                                    "Save",
+                                    "Puzzle saved.");
+                            info.showWithTimerPause();
                         } catch (Exception exception) {
-                            exception.printStackTrace();
+                            InfoDialog info = new InfoDialog(status,
+                                    "Save",
+                                    "Save puzzle FAIL.");
+                            info.showWithTimerPause();
                         }
                     }
                 }
@@ -517,8 +546,20 @@ class Sudoku {
             });
             tool.getExitBtn().setOnMouseClicked(e -> {
                 if (e.getButton() == MouseButton.PRIMARY) {
-                    game.stopTimer();
-                    Platform.exit();
+                    if (status.loadedPuzzle != null) {
+                        ConfirmDialog confirm = new ConfirmDialog(status,
+                                "Puzzle will NOT be saved automatically.");
+                        if (status.loadedPuzzle.isModified()) {
+                            confirm.showAndWait();
+                        }
+                        if (!status.loadedPuzzle.isModified() || confirm.getResult() == ButtonType.OK) {
+                            game.stopTimer();
+                            Platform.exit();
+                        }
+                    } else {
+                        game.stopTimer();
+                        Platform.exit();
+                    }
                 }
             });
 
@@ -552,6 +593,43 @@ class Sudoku {
                     stage.setY(e.getScreenY() - yOffset);
                 }
             });
+        }
+
+        private static class ConfirmDialog extends Alert {
+            public ConfirmDialog(Status status, String content) {
+                super(AlertType.CONFIRMATION);
+                this.getDialogPane().getStylesheets().add(status.getLists()[0][status.getThemeIdx()][1]);
+                this.setGraphic(null);
+                this.initStyle(StageStyle.UNDECORATED);
+                this.setHeaderText("Notice");
+                this.setContentText(content);
+            }
+        }
+
+        private static class InfoDialog extends Alert {
+            private final Status status;
+
+            public InfoDialog(Status status, String title, String content) {
+                super(AlertType.INFORMATION);
+                this.status = status;
+                this.getDialogPane().getStylesheets().add(status.getLists()[0][status.getThemeIdx()][1]);
+                this.setGraphic(null);
+                this.initStyle(StageStyle.UNDECORATED);
+                this.setHeaderText(title);
+                this.setContentText(content);
+            }
+
+            public void showWithTimerPause() {
+                boolean t;
+                if (status.loadedPuzzle != null) {
+                    t = status.loadedPuzzle.isTimerRun();
+                    status.loadedPuzzle.setTimerRun(false);
+                    this.showAndWait();
+                    status.loadedPuzzle.setTimerRun(t);
+                } else {
+                    this.showAndWait();
+                }
+            }
         }
 
         private static class Splash extends StackPane {
@@ -633,8 +711,8 @@ class Sudoku {
                 btn.setGraphic(
                         new ImageView(
                                 new Image(
-                                    url, uiHeight * 0.5, uiHeight * 0.5,
-                                    false, false)));
+                                        url, uiHeight * 0.5, uiHeight * 0.5,
+                                        false, false)));
                 btn.setStyle("-fx-background-radius: 0; -fx-background-insets: 0 0 -1 0, 0, 1, 2;");
                 return btn;
             }
@@ -717,6 +795,7 @@ class Sudoku {
             private final Stage stage;
 
             private final Thread timer;
+            private boolean timerPaused;
 
             Game(Status status, Stage stage) {
                 this.status = status;
@@ -732,13 +811,13 @@ class Sudoku {
                 settings.translateXProperty().bind(playground.translateXProperty().add(uiWidth));
                 this.getChildren().addAll(playground, settings);
 
-                timer = new Thread(()->{
+                timer = new Thread(() -> {
                     while (!Thread.currentThread().isInterrupted()) {
                         synchronized (this) {
                             try {
                                 wait(1000);
                                 if (status.loadedPuzzle != null) {
-                                    if (status.isTimerRun()) {
+                                    if (status.loadedPuzzle.isTimerRun()) {
                                         status.loadedPuzzle.tikTok();
                                     }
                                     Platform.runLater(() -> playground.refreshTimer(status.loadedPuzzle.getTimer()));
@@ -787,7 +866,16 @@ class Sudoku {
                 );
                 ame.play();
                 if (show) playground.refreshPuzzle();
-                status.setTimerRun(show);
+                if (status.loadedPuzzle != null) {
+                    if (status.loadedPuzzle.isTimerRun() && !show) {
+                        timerPaused = true;
+                        status.loadedPuzzle.setTimerRun(false);
+                    }
+                    if (!status.loadedPuzzle.isTimerRun() && show && timerPaused) {
+                        timerPaused = false;
+                        status.loadedPuzzle.setTimerRun(true);
+                    }
+                }
             }
 
             public void stopTimer() {
@@ -829,12 +917,12 @@ class Sudoku {
                     this.getChildren().add(toolBar);
 
                     GridPane sudokuGrid = new GridPane();
-                    for (int i=0; i<9; i++) {
-                        for (int j=0; j<9; j++) {
+                    for (int i = 0; i < 9; i++) {
+                        for (int j = 0; j < 9; j++) {
                             sudokuBlocks[i][j] = new Button("0");
                             sudokuBlocks[i][j].setOnKeyPressed(new blockHandler(i, j, status));
                             sudokuBlocks[i][j].getStyleClass().add("sudokuBtn");
-                            sudokuBlocks[i][j].setPrefSize(34,35);
+                            sudokuBlocks[i][j].setPrefSize(34, 35);
                             sudokuBlocks[i][j].setStyle("-fx-background-radius: 0; -fx-background-insets: 0 0 -1 0, 0, 1, 2;");
                             sudokuGrid.add(sudokuBlocks[i][j], i, j);
                         }
@@ -843,29 +931,54 @@ class Sudoku {
                     sudokuGrid.setLayoutY(3);
                     this.getChildren().add(sudokuGrid);
 
-                    checkBtn.setOnMouseClicked(e->{
-                        if (status.loadedPuzzle.checkPuzzle()) {
-                            status.setTimerRun(false);
+                    checkBtn.setOnMouseClicked(e -> {
+                        if (status.loadedPuzzle.isAutoSolved()) {
+                            InfoDialog info = new InfoDialog(status,
+                                    "Oops!",
+                                    "The puzzle is solved automatically.\nClear to reset.");
+                            info.showWithTimerPause();
+                        } else {
+                            if (status.loadedPuzzle.checkPuzzle()) {
+                                InfoDialog info = new InfoDialog(status,
+                                        "Congratulations!",
+                                        "Your answer is correct! Timer stopped.");
+                                info.showWithTimerPause();
+                            } else {
+                                InfoDialog info = new InfoDialog(status,
+                                        "Oops!",
+                                        "Your answer is wrong.");
+                                info.showWithTimerPause();
+                            }
                         }
                     });
-                    solveBtn.setOnMouseClicked(e->{
-                        status.loadedPuzzle.solvePuzzle();
-                        status.loadedPuzzle.clearTimer();
-                        status.setTimerRun(false);
-                        refreshPuzzle();
+                    solveBtn.setOnMouseClicked(e -> {
+                        ConfirmDialog confirm = new ConfirmDialog(status,
+                            "Auto solving will CLEAR & STOP the timer!");
+                        confirm.showAndWait();
+                        if (confirm.getResult() == ButtonType.OK) {
+                            status.loadedPuzzle.solvePuzzle();
+                            status.loadedPuzzle.clearTimer();
+                            status.loadedPuzzle.setTimerRun(false);
+                            refreshPuzzle();
+                        }
                     });
-                    clearBtn.setOnMouseClicked(e->{
-                        status.loadedPuzzle.clearPuzzle();
-                        status.setTimerRun(true);
-                        refreshPuzzle();
+                    clearBtn.setOnMouseClicked(e -> {
+                        ConfirmDialog confirm = new ConfirmDialog(status,
+                                "Clear will CLEAR the answer and timer!");
+                        confirm.showAndWait();
+                        if (confirm.getResult() == ButtonType.OK) {
+                            status.loadedPuzzle.clearPuzzle();
+                            status.loadedPuzzle.setTimerRun(true);
+                            refreshPuzzle();
+                        }
                     });
                 }
 
                 public void refreshPuzzle() {
                     if (status.loadedPuzzle != null) {
                         int[][][] puzzle = status.loadedPuzzle.getPuzzle();
-                        for (int i=0; i<9; i++) {
-                            for (int j=0; j<9; j++) {
+                        for (int i = 0; i < 9; i++) {
+                            for (int j = 0; j < 9; j++) {
                                 if (puzzle[0][i][j] != 0) {
                                     sudokuBlocks[i][j].setText(Integer.toString(puzzle[0][i][j]));
                                     sudokuBlocks[i][j].getStyleClass().add("puzzleBlock");
@@ -879,7 +992,7 @@ class Sudoku {
                 }
 
                 public void refreshTimer(int time) {
-                    timerText.setText(time/60 + " Min(s)\n" + time%60 + " Sec(s)");
+                    timerText.setText(time / 60 + " Min(s)\n" + time % 60 + " Sec(s)");
                 }
 
                 private Button createImageButton(String url) {
@@ -888,8 +1001,8 @@ class Sudoku {
                     btn.setGraphic(
                             new ImageView(
                                     new Image(
-                                        url, uiHeight * 0.5, uiHeight * 0.5,
-                                        false, false)));
+                                            url, uiHeight * 0.5, uiHeight * 0.5,
+                                            false, false)));
                     btn.setStyle("-fx-background-radius: 0; -fx-background-insets: 0 0 -1 0, 0, 1, 2;");
                     return btn;
                 }
@@ -969,7 +1082,7 @@ class Sudoku {
                 private ChoiceBox<String> createImageChoiceBox(
                         String[][] choices, int focus, String img, String tooltips, double y, Pane p) {
                     ChoiceBox<String> choiceBox = new ChoiceBox<>();
-                    for (String[] choice: choices) {
+                    for (String[] choice : choices) {
                         choiceBox.getItems().add(choice[0]);
                     }
 
@@ -980,7 +1093,7 @@ class Sudoku {
                     choiceBox.setTooltip(tooltip);
                     choiceBox.setLayoutX(110);
                     choiceBox.setLayoutY(y);
-                    choiceBox.setOnAction(e->saveSettings());
+                    choiceBox.setOnAction(e -> saveSettings());
 
                     ImageView label = new ImageView(new Image(img, 28, 28, false, false));
                     label.setLayoutX(60);
@@ -992,7 +1105,7 @@ class Sudoku {
 
                 public void saveSettings() {
                     String[][][] lists = status.getLists();
-                    for (short i=0; i<lists[0].length; i++) {
+                    for (short i = 0; i < lists[0].length; i++) {
                         if (lists[0][i][0].equals(themeChoice.getValue())) {
                             status.setTheme(i);
                             stage.getScene().getStylesheets().clear();
@@ -1000,13 +1113,13 @@ class Sudoku {
                             break;
                         }
                     }
-                    for (short i=0; i<lists[1].length; i++) {
+                    for (short i = 0; i < lists[1].length; i++) {
                         if (lists[1][i][0].equals(keymapChoice.getValue())) {
                             status.setKeymap(i);
                             break;
                         }
                     }
-                    for (short i=0; i<lists[2].length; i++) {
+                    for (short i = 0; i < lists[2].length; i++) {
                         if (lists[2][i][0].equals(musicChoice.getValue())) {
                             status.setMusic(i);
                             status.updatePlaying();

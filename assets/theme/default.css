@@ -64,3 +64,27 @@
     -fx-background-color: #333333;
     -fx-text-fill: #eeeeee;
 }
+
+.dialog-pane, .header-panel {
+    -fx-background-color: #9d0d0c;
+}
+
+.dialog-pane .label {
+    -fx-text-fill: #eeeeee;
+    -fx-padding: 0 0 0 30;
+}
+
+.dialog-pane .button {
+    -fx-background-color: #9d0d0c;
+    -fx-text-fill: #eeeeee;
+}
+
+.dialog-pane .button:hover {
+    -fx-background-color: #bd0600;
+}
+
+.header-panel .label {
+    -fx-text-fill: #eeeeee;
+    -fx-padding: 0 0 0 10;
+    -fx-font-size: 2em;
+}
