@@ -1,0 +1,5 @@
+out/
+.idea/
+Sudoku.iml
+*.status
+*.sudoku

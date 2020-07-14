@@ -1,0 +1,66 @@
+#splash {
+    -fx-background-color: #9d0d0c;
+}
+
+#splashTitle {
+    -fx-text-fill: #eeeeee;
+}
+
+#tool {
+    -fx-background-color: #9d0d0c;
+}
+
+#toolNew, #toolSave, #toolConfig, #toolExit {
+    -fx-background-color: #9d0d0c;
+}
+
+#toolNew:hover, #toolSave:hover, #toolConfig:hover, #toolExit:hover {
+    -fx-background-color: #bd0600;
+}
+
+#game {
+    -fx-background-color: #9d0d0c;
+}
+
+#gamePlayground {
+    -fx-background-color: #9d0d0c;
+}
+
+#gameSettings {
+    -fx-background-color: #9d0d0c;
+}
+
+#gameSettingsThemeChoice, #gameSettingsKeymapChoice, #gameSettingsMusicChoice {
+    -fx-background-color: #eeeeee;
+}
+
+#gamePlaygroundTimer {
+    -fx-text-fill: #eeeeee;
+}
+
+#gamePlaygroundCheck, #gamePlaygroundSolve, #gamePlaygroundClear {
+    -fx-background-color: #9d0d0c;
+}
+
+#gamePlaygroundCheck:hover, #gamePlaygroundSolve:hover, #gamePlaygroundClear:hover {
+    -fx-background-color: #bd0600;
+}
+
+.sudokuBtn {
+    -fx-background-color: #f8f8f8;
+    -fx-border-color: #cacaca;
+    -fx-text-fill: #555555
+}
+
+.sudokuBtn:hover {
+    -fx-background-color: #dddbdc;
+}
+
+.sudokuBtn:focused {
+    -fx-background-color: #cacaca;
+}
+
+.puzzleBlock, .puzzleBlock:focused, .puzzleBlock:hover {
+    -fx-background-color: #333333;
+    -fx-text-fill: #eeeeee;
+}
