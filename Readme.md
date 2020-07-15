@@ -4,44 +4,28 @@
 
 ### 软件特点
 
-+ 只包含一个 Java 源代码文件（SudokuFx.java）
-+ 题解可以保存、共享
-+ 现代风格的界面设计和配色
-+ 针对易用性与速度各有一套键位设置
-+ 多种颜色主题可供切换
-+ 附上开发时单曲循环的背景音乐
++ 只包含一个 Java 源代码文件（**SudokuFx.java**）。
++ 题解可以保存、读取，方便共享。
++ 针对易用性与速度各有一套键位预设。
++ 多种现代风格的配色主题可供切换。
++ 附上几首开发时单曲循环的背景音乐。
 
 ### 使用方法
 
 ​		SudokuFx 在 **OpenJDK13.0.2 + OpenJFX14.0.1，Ubuntu18.04.4LTS 环境** 下开发测试，暂未进行打包，需要自行搭建兼容环境并从源代码启动。
 
-+ 在 **Ubuntu 18.04.4LTS + Oracle JDK8u251** 下测试发现，**FileChooser** 处发生段错误，原因未知。
+>  在 **Ubuntu 18.04.4LTS + Oracle JDK8u251** 下测试发现，**FileChooser** 处发生段错误，原因未知。
+
+​		经过启动闪屏后进入主工具栏，左键互动，右键拖动窗体，弹窗操作逻辑也是如此。自左向右分别是**新建、关闭文件键，打开、保存文件键，设置、返回键，退出键** 。在打开文件后，键位功能会发生切换，具体功能可以通过鼠标停留显示Tooltips查看。打开文件后，界面下方是游戏工具栏，自左向右分别是**游戏计时器，检查答案，自动求解，清空答案** 。
 
 ### 代码结构
 
 ```java
-class SudokuFx extends Application { //JavaFX主类
-    ...
-}
-
+class SudokuFx extends Application {} //JavaFX主类
 class Sudoku { //算法、界面、持久化
-    
-	class Puzzle { //数独核心逻辑
-        ...
-        class Storage implements Serializable {...} //序列化类
-    }
-    
-    class Status { //运行状态
-        ...
-        class Storage implements Serializable {...} //序列化类
-    }
-    
-	class UI extend { //界面
-        ...
-        class Splash extends StackPane {...} //启动屏幕
-        class Tool extends HBox {...} //工具栏
-        class Game extends Pane {...} //游戏区域
-    }
+        class Puzzle {} //数独核心逻辑
+        class Status {} //运行状态
+        class UI {} //界面
 }
 ```
 

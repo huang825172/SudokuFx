@@ -34,6 +34,11 @@
     -fx-background-color: #eeeeee;
 }
 
+.choice-box .context-menu { -fx-background-color: #eeeeee; }
+.choice-box .menu-item:focused { -fx-background-color: #bd0600; }
+.choice-box .menu-item > .label { -fx-text-fill: #9d0d0c; }
+.choice-box .menu-item:focused > .label { -fx-text-fill: #eeeeee; }
+
 #gamePlaygroundTimer {
     -fx-text-fill: #eeeeee;
 }

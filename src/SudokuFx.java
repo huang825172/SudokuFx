@@ -1,19 +1,30 @@
-import javafx.animation.*;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.Control;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
-import javafx.scene.layout.*;
+
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.text.Font;
@@ -22,7 +33,15 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
 
-import java.io.*;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.Random;
 
 public class SudokuFx extends Application {
 
@@ -71,19 +90,33 @@ class Sudoku {
         }
 
         private Storage newPuzzle(int blankCount) {
-            Storage puzzle = new Storage();
-            puzzle.puzzle = new int[][]{
-                    {0, 1, 0, 0, 0, 2, 0, 8, 4},
-                    {0, 0, 8, 3, 0, 0, 0, 0, 1},
-                    {0, 0, 3, 0, 1, 6, 5, 0, 0},
-                    {8, 0, 0, 9, 5, 0, 0, 0, 0},
-                    {0, 7, 0, 0, 0, 0, 4, 9, 0},
-                    {3, 6, 0, 0, 7, 0, 0, 5, 0},
-                    {0, 0, 5, 4, 0, 1, 0, 7, 0},
-                    {1, 0, 0, 2, 0, 0, 8, 0, 5},
-                    {0, 8, 0, 0, 0, 0, 1, 0, 9}
-            };
-            return puzzle;
+            if (blankCount > 81) return null;
+            Random rand = new Random();
+            int[][] puzzle;
+            do {
+                puzzle = new int[9][9];
+                for (int i = 0; i < 3; i++) {
+                    for (int j = 0; j < 3; j++) {
+                        int x = rand.nextInt(3);
+                        int y = rand.nextInt(3);
+                        puzzle[i * 3 + x][j * 3 + y] = i * 3 + j + 1;
+                    }
+                }
+                puzzle = getSolve(puzzle);
+            } while (puzzle == null);
+            for (int i = 0; i < blankCount; i++) {
+                while (true) {
+                    int x = rand.nextInt(9);
+                    int y = rand.nextInt(9);
+                    if (puzzle[x][y] != 0) {
+                        puzzle[x][y] = 0;
+                        break;
+                    }
+                }
+            }
+            Storage newOne = new Storage();
+            newOne.puzzle = puzzle;
+            return newOne;
         }
 
         public boolean checkPuzzle() {
@@ -163,15 +196,21 @@ class Sudoku {
             modified = true;
         }
 
-        public boolean isAutoSolved() { return this.current.isAutoSolved; }
+        public boolean isAutoSolved() {
+            return this.current.isAutoSolved;
+        }
 
         public void setTimerRun(boolean run) {
             this.current.isTimerRun = run;
         }
 
-        public boolean isTimerRun() { return this.current.isTimerRun; }
+        public boolean isTimerRun() {
+            return this.current.isTimerRun;
+        }
 
-        public boolean isModified() { return modified; }
+        public boolean isModified() {
+            return modified;
+        }
 
         private boolean blockInvalid(int i, int j, int[][] puzzle) {
             int x = (j - (j) % 3) / 3;
@@ -309,9 +348,12 @@ class Sudoku {
         };
         private final String[][] musicList = {
                 {"none", ""},
-                {"Lifeline", "assets/music/Lifeline.mp3"}
+                {"Lifeline", "assets/music/Lifeline.mp3"},
+                {"Dans la maison", "assets/music/Dans_la_maison.mp3"},
+                {"Yae Sakura", "assets/music/Yae_Sakura_ver_Piano.mp3"}
         };
         private MediaPlayer mp = null;
+        private Thread mpT = null;
         private String playing = "";
 
         public Puzzle loadedPuzzle = null;
@@ -403,6 +445,10 @@ class Sudoku {
                 mp.stop();
                 mp = null;
             }
+            if (mpT != null) {
+                mpT.interrupt();
+                mpT = null;
+            }
             playing = file;
             if (file.equals("")) return;
             mp = new MediaPlayer(
@@ -411,7 +457,8 @@ class Sudoku {
             mp.setCycleCount(MediaPlayer.INDEFINITE);
             mp.setStartTime(Duration.ZERO);
             mp.setStopTime(mp.getTotalDuration());
-            Platform.runLater(() -> mp.play());
+            mpT = new Thread(() -> mp.play());
+            mpT.start();
         }
 
         public static class Storage implements Serializable {
@@ -459,7 +506,7 @@ class Sudoku {
                                 file = new File(file.getAbsolutePath() + ".sudoku");
                             }
                             try {
-                                status.loadedPuzzle = new Puzzle(0, file);
+                                status.loadedPuzzle = new Puzzle(51, file);
                                 status.loadedPuzzle.setTimerRun(true);
                                 tool.fileOpened(true);
                                 tool.settingsShowed(false);
@@ -595,22 +642,43 @@ class Sudoku {
             });
         }
 
-        private static class ConfirmDialog extends Alert {
-            public ConfirmDialog(Status status, String content) {
-                super(AlertType.CONFIRMATION);
+        private static class MovableDialog extends Alert {
+            private double xOffset = 0;
+            private double yOffset = 0;
+
+            MovableDialog(Status status, AlertType type) {
+                super(type);
                 this.getDialogPane().getStylesheets().add(status.getLists()[0][status.getThemeIdx()][1]);
                 this.setGraphic(null);
                 this.initStyle(StageStyle.UNDECORATED);
+                this.getDialogPane().setOnMousePressed(e -> {
+                    if (e.getButton() == MouseButton.SECONDARY) {
+                        xOffset = e.getSceneX();
+                        yOffset = e.getSceneY();
+                    }
+                });
+                this.getDialogPane().setOnMouseDragged(e -> {
+                    if (e.getButton() == MouseButton.SECONDARY) {
+                        this.setX(e.getScreenX() - xOffset);
+                        this.setY(e.getScreenY() - yOffset);
+                    }
+                });
+            }
+        }
+
+        private static class ConfirmDialog extends MovableDialog {
+            public ConfirmDialog(Status status, String content) {
+                super(status, AlertType.CONFIRMATION);
                 this.setHeaderText("Notice");
                 this.setContentText(content);
             }
         }
 
-        private static class InfoDialog extends Alert {
+        private static class InfoDialog extends MovableDialog {
             private final Status status;
 
             public InfoDialog(Status status, String title, String content) {
-                super(AlertType.INFORMATION);
+                super(status, AlertType.INFORMATION);
                 this.status = status;
                 this.getDialogPane().getStylesheets().add(status.getLists()[0][status.getThemeIdx()][1]);
                 this.setGraphic(null);
@@ -820,7 +888,7 @@ class Sudoku {
                                     if (status.loadedPuzzle.isTimerRun()) {
                                         status.loadedPuzzle.tikTok();
                                     }
-                                    Platform.runLater(() -> playground.refreshTimer(status.loadedPuzzle.getTimer()));
+                                    Platform.runLater(playground::refreshTimer);
                                 }
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
@@ -899,7 +967,7 @@ class Sudoku {
                     timerPane.setPrefSize(uiHeight, uiHeight);
                     timerText = new Label();
                     timerText.setId("gamePlaygroundTimer");
-                    refreshTimer(0);
+                    refreshTimer();
                     timerPane.getChildren().add(timerText);
                     Button checkBtn = createImageButton("file:assets/pic/check.png");
                     checkBtn.setId("gamePlaygroundCheck");
@@ -932,44 +1000,56 @@ class Sudoku {
                     this.getChildren().add(sudokuGrid);
 
                     checkBtn.setOnMouseClicked(e -> {
-                        if (status.loadedPuzzle.isAutoSolved()) {
-                            InfoDialog info = new InfoDialog(status,
-                                    "Oops!",
-                                    "The puzzle is solved automatically.\nClear to reset.");
-                            info.showWithTimerPause();
-                        } else {
-                            if (status.loadedPuzzle.checkPuzzle()) {
-                                InfoDialog info = new InfoDialog(status,
-                                        "Congratulations!",
-                                        "Your answer is correct! Timer stopped.");
-                                info.showWithTimerPause();
-                            } else {
+                        if (e.getButton() == MouseButton.PRIMARY) {
+                            if (status.loadedPuzzle.isAutoSolved()) {
                                 InfoDialog info = new InfoDialog(status,
                                         "Oops!",
-                                        "Your answer is wrong.");
+                                        "The puzzle is solved automatically.\nClear to reset.");
                                 info.showWithTimerPause();
+                            } else {
+                                if (status.loadedPuzzle.checkPuzzle()) {
+                                    InfoDialog info = new InfoDialog(status,
+                                            "Congratulations!",
+                                            "Your answer is correct! Timer stopped.");
+                                    info.showWithTimerPause();
+                                } else {
+                                    InfoDialog info = new InfoDialog(status,
+                                            "Oops!",
+                                            "Your answer is wrong.");
+                                    info.showWithTimerPause();
+                                }
                             }
                         }
                     });
                     solveBtn.setOnMouseClicked(e -> {
-                        ConfirmDialog confirm = new ConfirmDialog(status,
-                            "Auto solving will CLEAR & STOP the timer!");
-                        confirm.showAndWait();
-                        if (confirm.getResult() == ButtonType.OK) {
-                            status.loadedPuzzle.solvePuzzle();
-                            status.loadedPuzzle.clearTimer();
-                            status.loadedPuzzle.setTimerRun(false);
-                            refreshPuzzle();
+                        if (e.getButton() == MouseButton.PRIMARY) {
+                            ConfirmDialog confirm = new ConfirmDialog(status,
+                                    "Auto solving will CLEAR & STOP the timer!");
+                            confirm.showAndWait();
+                            if (confirm.getResult() == ButtonType.OK) {
+                                if (status.loadedPuzzle.solvePuzzle()) {
+                                    status.loadedPuzzle.clearTimer();
+                                    status.loadedPuzzle.setTimerRun(false);
+                                    refreshPuzzle();
+                                } else {
+                                    InfoDialog info = new InfoDialog(status,
+                                            "Oops!",
+                                            "The puzzle is unsolvable.");
+                                    info.showWithTimerPause();
+                                }
+                            }
                         }
                     });
                     clearBtn.setOnMouseClicked(e -> {
-                        ConfirmDialog confirm = new ConfirmDialog(status,
-                                "Clear will CLEAR the answer and timer!");
-                        confirm.showAndWait();
-                        if (confirm.getResult() == ButtonType.OK) {
-                            status.loadedPuzzle.clearPuzzle();
-                            status.loadedPuzzle.setTimerRun(true);
-                            refreshPuzzle();
+                        if (e.getButton() == MouseButton.PRIMARY) {
+                            ConfirmDialog confirm = new ConfirmDialog(status,
+                                    "Clear will CLEAR the answer and timer!");
+                            confirm.showAndWait();
+                            if (confirm.getResult() == ButtonType.OK) {
+                                status.loadedPuzzle.clearPuzzle();
+                                status.loadedPuzzle.setTimerRun(true);
+                                refreshPuzzle();
+                            }
                         }
                     });
                 }
@@ -979,19 +1059,23 @@ class Sudoku {
                         int[][][] puzzle = status.loadedPuzzle.getPuzzle();
                         for (int i = 0; i < 9; i++) {
                             for (int j = 0; j < 9; j++) {
+                                sudokuBlocks[i][j].getStyleClass().remove("puzzleBlock");
                                 if (puzzle[0][i][j] != 0) {
                                     sudokuBlocks[i][j].setText(Integer.toString(puzzle[0][i][j]));
                                     sudokuBlocks[i][j].getStyleClass().add("puzzleBlock");
                                 } else {
                                     sudokuBlocks[i][j].setText(Integer.toString(puzzle[1][i][j]));
-                                    sudokuBlocks[i][j].getStyleClass().remove("puzzleBlock");
                                 }
                             }
                         }
                     }
                 }
 
-                public void refreshTimer(int time) {
+                public void refreshTimer() {
+                    int time = 0;
+                    if (status.loadedPuzzle != null) {
+                        time = status.loadedPuzzle.getTimer();
+                    }
                     timerText.setText(time / 60 + " Min(s)\n" + time % 60 + " Sec(s)");
                 }
 
