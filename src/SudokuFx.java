@@ -1064,7 +1064,11 @@ class Sudoku {
                                     sudokuBlocks[i][j].setText(Integer.toString(puzzle[0][i][j]));
                                     sudokuBlocks[i][j].getStyleClass().add("puzzleBlock");
                                 } else {
-                                    sudokuBlocks[i][j].setText(Integer.toString(puzzle[1][i][j]));
+                                    if (puzzle[1][i][j] != 0) {
+                                        sudokuBlocks[i][j].setText(Integer.toString(puzzle[1][i][j]));
+                                    } else {
+                                        sudokuBlocks[i][j].setText("");
+                                    }
                                 }
                             }
                         }
@@ -1124,7 +1128,11 @@ class Sudoku {
                     public void refreshBlock() {
                         int[][][] puzzle = status.loadedPuzzle.getPuzzle();
                         if (puzzle[0][x][y] == 0) {
-                            sudokuBlocks[x][y].setText(Integer.toString(puzzle[1][x][y]));
+                            if (puzzle[1][x][y] != 0) {
+                                sudokuBlocks[x][y].setText(Integer.toString(puzzle[1][x][y]));
+                            } else {
+                                sudokuBlocks[x][y].setText("");
+                            }
                             sudokuBlocks[x][y].getStyleClass().remove("puzzleBlock");
                         }
                     }
